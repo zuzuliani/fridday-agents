@@ -1,0 +1,3 @@
+"""
+Fridday Agents Application Package
+""" 

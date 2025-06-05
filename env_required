@@ -1,0 +1,27 @@
+# Environment
+ENVIRONMENT=development  # or production
+
+# Supabase Configuration
+SUPABASE_URL=https://buwloyuqfpxlybaoyovo.supabase.co  # e.g., https://your-project.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ...    # The anon/public key from Supabase dashboard
+
+SUPABASE_EMAIL=mateus@...
+SUPABASE_PASSWORD=123123...
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379  # Local development
+# REDIS_URL=redis://username:password@host:port  # Production
+
+# API Configuration
+API_V1_STR=/api/v1
+PROJECT_NAME=Fridday Agents
+
+# Security
+SECRET_KEY=your-secret-key-here  # Used for JWT signing (if needed)
+ACCESS_TOKEN_EXPIRE_MINUTES=11520  # 8 days in minutes
+
+# CORS (if needed)
+CORS_ORIGINS=http://localhost:3000,https://your-weweb-app.com  # Comma-separated list of allowed origins
+
+# Optional: Logging
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL

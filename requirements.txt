@@ -1,3 +1,7 @@
+# Python version constraint
+# Requires Python >=3.9,<3.13
+
+# Existing dependencies
 langchain-groq
 langchain
 python-dotenv
@@ -20,3 +24,17 @@ langchain_experimental
 pandas
 matplotlib
 graphviz
+
+# New dependencies for web app and integrations
+supabase>=2.0.0  # Changed from supabase-py to supabase
+fastapi>=0.109.0
+uvicorn>=0.27.0
+redis>=5.0.1
+python-jose[cryptography]>=3.3.0  # For JWT handling
+passlib[bcrypt]>=1.7.4  # For password hashing
+python-multipart>=0.0.6  # For form data handling
+
+# Testing dependencies
+pytest>=8.0.0
+pytest-asyncio>=0.23.0  # Required for async tests
+httpx>=0.26.0  # Required for TestClient
