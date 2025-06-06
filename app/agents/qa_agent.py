@@ -18,6 +18,7 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+EMBEDDING_DIM = 1536  # Set this to your embedding size (e.g., 1536 for OpenAI Ada)
 
 # Custom system prompt for business consulting
 BUSINESS_CONSULTANT_PROMPT = """You are an expert business consultant with deep knowledge in:
@@ -180,6 +181,27 @@ class ConversationalAgent:
             else:
                 self.memory.chat_memory.add_ai_message(content)
 
+    async def _rest_update_conversation(self, row_id, update_data, jwt_token):
+        url = f"{SUPABASE_URL}/rest/v1/conversations?id=eq.{row_id}"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {jwt_token}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
+        async with httpx.AsyncClient() as client:
+            resp = await client.patch(url, headers=headers, json=update_data)
+            print("Update status:", resp.status_code)
+            print("Update response text:", resp.text)
+            if resp.status_code not in (200, 201):
+                raise Exception(f"Update failed: {resp.text}")
+            try:
+                return resp.json()
+            except Exception as e:
+                print("Failed to parse JSON response:", e)
+                print("Raw response text:", resp.text)
+                raise
+
     async def run(self, user_message, user_id, session_id=None, jwt_token=None):
         session_id = self.get_or_create_session_id(session_id)
         # Log user message
@@ -190,10 +212,34 @@ class ConversationalAgent:
         redis_memory.set_memory(f"session:{session_id}:last_user_message", user_message, expire=3600)
         # Update LangChain memory
         self.update_memory(history)
+        # Insert assistant row with status 'pending' and empty content
+        pending_assistant_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "role": "assistant",
+            "content": "",
+            "title": "Business Consultation",
+            "metadata": {},
+            "is_archived": False,
+            "embedding": [0.0] * EMBEDDING_DIM,
+            "status": "pending"
+        }
+        pending_row = await self._rest_insert_conversation(pending_assistant_data, jwt_token)
+        assistant_row_id = None
+        if isinstance(pending_row, list) and pending_row:
+            assistant_row_id = pending_row[0].get("id")
+        elif isinstance(pending_row, dict):
+            assistant_row_id = pending_row.get("id")
         # Generate agent reply using the agent executor
         agent_reply = self.agent.invoke({"input": user_message})["output"]
-        # Log agent reply
-        await self.log_message(session_id, user_id, "assistant", agent_reply, jwt_token)
+        # Update the assistant row with the reply and status 'complete'
+        if assistant_row_id:
+            update_data = {
+                "content": agent_reply,
+                "embedding": get_embedding(agent_reply),
+                "status": "complete"
+            }
+            await self._rest_update_conversation(assistant_row_id, update_data, jwt_token)
         # Update Redis with agent reply
         redis_memory.set_memory(f"session:{session_id}:last_agent_reply", agent_reply, expire=3600)
         return {"reply": agent_reply, "session_id": session_id} 
