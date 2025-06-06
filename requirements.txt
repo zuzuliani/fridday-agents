@@ -42,3 +42,4 @@ httpx>=0.26.0  # Required for TestClient
 
 # Added from the code block
 openai>=1.0.0
+langchain-openai
