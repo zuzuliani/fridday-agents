@@ -7,6 +7,10 @@ from app.agents.qa_agent import ConversationalAgent
 from app.config import CORS_ORIGINS
 from app.auth.supabase import auth
 import traceback
+from dotenv import load_dotenv
+import os
+import io
+from contextlib import redirect_stdout
 
 app = FastAPI(title="Business Consultant Chat API")
 
@@ -48,18 +52,22 @@ async def chat(payload: dict, request: Request, current_user=Depends(auth.get_cu
         # Generate a new session ID if not provided
         session_id = payload["session_id"] or str(uuid.uuid4())
         
-        # Await the async agent.run method
-        response = await agent.run(
-            user_message=payload["message"],
-            user_id=user_id,
-            session_id=session_id,
-            jwt_token=jwt_token
-        )
+        # Capture agent debug output
+        f = io.StringIO()
+        with redirect_stdout(f):
+            response = await agent.run(
+                user_message=payload["message"],
+                user_id=user_id,
+                session_id=session_id,
+                jwt_token=jwt_token
+            )
+        debug_output = f.getvalue()
         
-        # Return the agent's reply directly
+        # Return the agent's reply and debug output
         return {
             "reply": response["reply"],
-            "session_id": session_id
+            "session_id": session_id,
+            "debug_output": debug_output
         }
     except Exception as e:
         print("Exception in /chat:", e)
@@ -71,4 +79,30 @@ async def health_check():
     return {
         "status": "healthy",
         "environment": "production"
-    } 
+    }
+
+@app.post("/dev_login")
+async def dev_login():
+    """Authenticate using Supabase email/password from .env and return JWT/user_id."""
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+    SUPABASE_EMAIL = os.getenv("SUPABASE_EMAIL")
+    SUPABASE_PASSWORD = os.getenv("SUPABASE_PASSWORD")
+    if not SUPABASE_URL or not SUPABASE_KEY or not SUPABASE_EMAIL or not SUPABASE_PASSWORD:
+        raise HTTPException(status_code=500, detail="Supabase credentials not set in .env")
+    try:
+        from supabase import create_client
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        response = supabase.auth.sign_in_with_password({
+            "email": SUPABASE_EMAIL,
+            "password": SUPABASE_PASSWORD
+        })
+        if not response.session or not response.session.access_token:
+            raise Exception("Failed to obtain session token from Supabase")
+        user_id = response.user.id
+        return {
+            "access_token": response.session.access_token,
+            "user_id": user_id
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}") 
