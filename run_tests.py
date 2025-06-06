@@ -20,6 +20,7 @@ def run_tests():
         "-m",
         "pytest",
         "tests/test_supabase.py",
+        "tests/test_vector_search.py",
         "-v"
     ])
     

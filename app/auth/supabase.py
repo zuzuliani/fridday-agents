@@ -8,8 +8,8 @@ security = HTTPBearer()
 class SupabaseAuth:
     def __init__(self):
         self.supabase: Client = create_client(
-            settings.SUPABASE_URL,
-            settings.SUPABASE_KEY
+            settings.supabase_url,
+            settings.supabase_key
         )
     
     async def get_current_user(self, credentials: HTTPAuthorizationCredentials = Depends(security)):

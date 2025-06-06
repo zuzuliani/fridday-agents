@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 class RedisMemory:
     def __init__(self):
-        self.redis_client = redis.from_url(settings.REDIS_URL)
+        self.redis_client = redis.from_url(settings.redis_url)
     
     def set_memory(self, key: str, value: Any, expire: Optional[int] = None) -> bool:
         """

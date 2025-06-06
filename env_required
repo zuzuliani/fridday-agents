@@ -25,3 +25,6 @@ CORS_ORIGINS=http://localhost:3000,https://your-weweb-app.com  # Comma-separated
 
 # Optional: Logging
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# OPEN AI
+OPENAI_API_KEY=sk-...

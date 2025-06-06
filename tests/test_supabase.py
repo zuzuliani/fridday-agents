@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import json
 from datetime import datetime
+from app.agents.utilities.create_embeddings import get_embedding
 
 # Load environment variables
 load_dotenv()
@@ -83,6 +84,14 @@ def test_environment_variables():
     print(f"\n✅ Environment variables check passed")
     print(f"Supabase URL: {os.getenv('SUPABASE_URL')}")
 
+def test_get_embedding():
+    text = "Hello, this is a test."
+    embedding = get_embedding(text)
+    assert isinstance(embedding, list)
+    assert all(isinstance(x, float) for x in embedding)
+    assert len(embedding) > 0
+    print("✅ Embedding generated successfully:", embedding[:5], "...")
+
 def test_conversations_select_and_insert():
     """Test select and insert on conversations table for authenticated user"""
     print("\n3. Testing Conversations Table (select & insert)...")
@@ -102,14 +111,17 @@ def test_conversations_select_and_insert():
 
     # Insert a conversation
     print("   a. Inserting a conversation...")
+    content = "This is a test conversation from pytest."
+    embedding = get_embedding(content)
     insert_data = {
         "session_id": "test-session",
         "user_id": user_id,
         "role": "user",
-        "content": "This is a test conversation from pytest.",
+        "content": content,
         "title": "Test Conversation",
         "metadata": {},
-        "is_archived": False
+        "is_archived": False,
+        "embedding": embedding
     }
     insert_response = supabase.table("conversations").insert(insert_data).execute()
     assert insert_response.data, f"Insert failed: {insert_response.error}"
