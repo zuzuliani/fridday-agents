@@ -12,6 +12,7 @@ import os
 import io
 from contextlib import redirect_stdout
 from app.gpt_researcher_router import router as gpt_researcher_router
+import logging
 
 app = FastAPI(title="Business Consultant Chat API")
 
@@ -44,7 +45,9 @@ async def root():
 
 @app.post("/chat")
 async def chat(payload: dict, request: Request, current_user=Depends(auth.get_current_user)):
-    """Chat with the business consultant agent."""
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info("[/chat] Received request with payload: %s", payload)
     try:
         # Get JWT token from Authorization header
         jwt_token = request.headers.get("authorization", "").replace("Bearer ", "")
@@ -63,6 +66,7 @@ async def chat(payload: dict, request: Request, current_user=Depends(auth.get_cu
                 jwt_token=jwt_token
             )
         debug_output = f.getvalue()
+        logger.info("[/chat] Sending response for session_id: %s", session_id)
         
         # Return the agent's reply and debug output
         return {
@@ -71,7 +75,7 @@ async def chat(payload: dict, request: Request, current_user=Depends(auth.get_cu
             "debug_output": debug_output
         }
     except Exception as e:
-        print("Exception in /chat:", e)
+        logger.error("Exception in /chat: %s", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

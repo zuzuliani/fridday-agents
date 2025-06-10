@@ -4,11 +4,16 @@ from .supabase import auth
 from ..config import settings
 import jwt
 from datetime import datetime, timedelta
+import logging
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 async def get_current_user(authorization: str = Header(None)):
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info("[get_current_user] Called with authorization header: %s", authorization)
     if not authorization:
+        logger.warning("[get_current_user] No authorization header provided")
         raise HTTPException(
             status_code=401,
             detail="No authorization header"
@@ -21,12 +26,15 @@ async def get_current_user(authorization: str = Header(None)):
         # Verify the token with Supabase
         user = auth.supabase.auth.get_user(token)
         if not user:
+            logger.warning("[get_current_user] Invalid token")
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token"
             )
+        logger.info("[get_current_user] Authenticated user: %s", getattr(user, 'id', 'unknown'))
         return user
     except Exception as e:
+        logger.error("[get_current_user] Exception: %s", str(e))
         raise HTTPException(
             status_code=401,
             detail=f"Invalid authentication credentials: {str(e)}"

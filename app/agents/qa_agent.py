@@ -13,6 +13,7 @@ from langchain.tools import Tool
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_core.messages import SystemMessage
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -40,6 +41,9 @@ Always maintain a professional tone and focus on delivering value through practi
 
 class ConversationalAgent:
     def __init__(self, llm_model="gpt-3.5-turbo"):
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("[ConversationalAgent] Initializing agent with model %s", llm_model)
         self.llm = ChatOpenAI(model=llm_model)
         self.memory = ConversationBufferMemory(
             memory_key="chat_history",
@@ -53,7 +57,9 @@ class ConversationalAgent:
         self.agent = self._create_agent()
         
         # Initialize Supabase client (will be updated with JWT token)
+        self.logger.info("[ConversationalAgent] Creating Supabase client")
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        self.logger.info("[ConversationalAgent] Initialization complete")
         
     def _initialize_tools(self) -> List[Tool]:
         """Initialize the tools available to the agent"""
@@ -203,6 +209,7 @@ class ConversationalAgent:
                 raise
 
     async def run(self, user_message, user_id, session_id=None, jwt_token=None):
+        self.logger.info("[run] Start: user_id=%s, session_id=%s", user_id, session_id)
         session_id = self.get_or_create_session_id(session_id)
         # Log user message
         await self.log_message(session_id, user_id, "user", user_message, jwt_token)
@@ -242,4 +249,5 @@ class ConversationalAgent:
             await self._rest_update_conversation(assistant_row_id, update_data, jwt_token)
         # Update Redis with agent reply
         redis_memory.set_memory(f"session:{session_id}:last_agent_reply", agent_reply, expire=3600)
+        self.logger.info("[run] End: user_id=%s, session_id=%s", user_id, session_id)
         return {"reply": agent_reply, "session_id": session_id} 
