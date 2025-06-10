@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import os
 import io
 from contextlib import redirect_stdout
+from app.gpt_researcher_router import router as gpt_researcher_router
 
 app = FastAPI(title="Business Consultant Chat API")
 
@@ -105,4 +106,6 @@ async def dev_login():
             "user_id": user_id
         }
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}") 
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+
+app.include_router(gpt_researcher_router) 

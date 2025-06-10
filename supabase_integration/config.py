@@ -9,6 +9,7 @@ class SupabaseConfig(BaseSettings):
     class Config:
         env_file = ".env"
         env_prefix = "SUPABASE_"
+        extra = "allow"
 
 @lru_cache()
 def get_supabase_config() -> SupabaseConfig:

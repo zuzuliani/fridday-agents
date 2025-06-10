@@ -52,6 +52,7 @@ async def select_or_create_session(auth_info):
         "Content-Type": "application/json"
     }
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase.postgrest.auth(JWT_TOKEN)  # Set the user's JWT for RLS
     while True:
         choice = input("Do you want to start a new session? (y/n): ").strip().lower()
         if choice == 'y':
