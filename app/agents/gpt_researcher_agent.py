@@ -77,7 +77,7 @@ class GPTResearcherAgent:
     def _on_open(self, ws, payload):
         ws.send(payload)
 
-    def run_task(self, task, report_type, report_source, tone, user_id, topic, jwt_token):
+    def run_task(self, task, report_type, report_source, tone, user_id, topic, jwt_token, headers=None):
         self.set_supabase_client(jwt_token)
         self.user_id = user_id
         self.topic = topic
@@ -85,9 +85,19 @@ class GPTResearcherAgent:
         self.metadata = []
         self.results = ""
         self._insert_initial_row()
-        payload = (
-            f'start {json.dumps({"task": task, "report_type": report_type, "report_source": report_source, "tone": tone})}'
-        )
+        
+        payload_data = {
+            "task": task,
+            "report_type": report_type,
+            "report_source": report_source,
+            "tone": tone
+        }
+        
+        if headers:
+            payload_data["headers"] = headers
+            
+        payload = f'start {json.dumps(payload_data)}'
+        
         self._ws = websocket.WebSocketApp(
             self.ws_url,
             on_open=lambda ws: self._on_open(ws, payload),
