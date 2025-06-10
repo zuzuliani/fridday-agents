@@ -2,7 +2,7 @@ import websocket
 import json
 import threading
 import uuid
-from supabase_integration import get_supabase_client
+from app.supabase_integration import get_supabase_client
 
 class GPTResearcherAgent:
     def __init__(self, ws_url):
@@ -39,7 +39,7 @@ class GPTResearcherAgent:
             print("DEBUG: Updating results in Supabase:", self.results[:100] + "..." if len(self.results) > 100 else self.results)
             response = self.supabase.table("research_history").update({
                 "results": self.results
-            }).eq("id", self.research_id).execute()
+        }).eq("id", self.research_id).execute()
             print("DEBUG: Supabase update response:", response)
             if hasattr(response, 'error') and response.error:
                 print("ERROR: Supabase update failed:", response.error)
