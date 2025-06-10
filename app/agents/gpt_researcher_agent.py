@@ -40,35 +40,36 @@ class GPTResearcherAgent:
 
     def _update_results(self):
         try:
-            print("DEBUG: Updating results in Supabase:", self.results[:100] + "..." if len(self.results) > 100 else self.results)
+            self.logger.info("[Supabase] Updating results in Supabase. Results length: %d", len(self.results))
             response = self.supabase.table("research_history").update({
                 "results": self.results
-        }).eq("id", self.research_id).execute()
-            print("DEBUG: Supabase update response:", response)
+            }).eq("id", self.research_id).execute()
+            self.logger.info("[Supabase] Supabase update response: %s", response)
             if hasattr(response, 'error') and response.error:
-                print("ERROR: Supabase update failed:", response.error)
+                self.logger.error("[Supabase] Supabase update failed: %s", response.error)
         except Exception as e:
-            print("ERROR: Failed to update results in Supabase:", str(e))
-            print("ERROR: Research ID:", self.research_id)
-            print("ERROR: Results length:", len(self.results))
+            self.logger.error("[Supabase] Failed to update results in Supabase: %s", str(e))
+            self.logger.error("[Supabase] Research ID: %s", self.research_id)
+            self.logger.error("[Supabase] Results length: %d", len(self.results))
 
     def _on_message(self, ws, message):
         self.logger.info("[WebSocket] Received message: %s", message)
+        if "📝 Report written for" in message:
+            self.logger.info("[WebSocket] Report completion message received!")
         try:
             msg = json.loads(message)
         except Exception:
             msg = message
         if isinstance(msg, dict) and msg.get("type") == "report":
             output = msg.get("output", "")
-            print("DEBUG: Appending report chunk:", output)
-            print("DEBUG: Current results length:", len(self.results))
+            self.logger.info("[WebSocket] Appending report chunk. Current results length: %d", len(self.results))
             self.results += output
-            print("DEBUG: New results length:", len(self.results))
+            self.logger.info("[WebSocket] New results length: %d", len(self.results))
             self._update_results()
         elif isinstance(msg, dict):
             self.metadata.append(msg)
             self._update_metadata()
-        print("Received:", message)
+        self.logger.info("[WebSocket] Message handling complete.")
 
     def _on_error(self, ws, error):
         self.logger.error("[WebSocket] Error: %s", error)
@@ -76,8 +77,10 @@ class GPTResearcherAgent:
         self._ws_closed = True
 
     def _on_close(self, ws, close_status_code, close_msg):
-        self.logger.info("[WebSocket] Connection closed")
+        self.logger.info("[WebSocket] Connection closed. Final results length: %d", len(self.results))
+        self.logger.info("[WebSocket] Close status code: %s, message: %s", close_status_code, close_msg)
         self._update_results()
+        self.logger.info("[WebSocket] on_close handler complete.")
         self._ws_closed = True
 
     def _on_open(self, ws, payload):
@@ -117,7 +120,7 @@ class GPTResearcherAgent:
         self._ws_thread = threading.Thread(target=self._ws.run_forever)
         self.logger.info("[run_task] Starting WebSocket thread")
         self._ws_thread.start()
-        self._ws_thread.join(timeout=60)
+        self._ws_thread.join(timeout=300)
         if self._ws_thread.is_alive():
             self.logger.warning("[run_task] WebSocket thread did not finish in 60s, attempting to close")
             if self._ws:
@@ -126,7 +129,7 @@ class GPTResearcherAgent:
                 except Exception as e:
                     self.logger.error("[run_task] Error closing WebSocket: %s", e)
             self._ws_thread.join(timeout=5)
-        self.logger.info("[run_task] Finished research task for research_id=%s", self.research_id)
+        self.logger.info("[run_task] Finished research task for research_id=%s, final results length: %d", self.research_id, len(self.results))
         return {
             "research_id": self.research_id,
             "metadata": self.metadata,
